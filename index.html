@@ -1,1 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>on yu 的 C 语言笔记</title>
+<style>
+  :root {
+    --bg: #0d1117; --card: #161b22; --border: #30363d;
+    --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    line-height: 1.7; padding: 48px 20px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  header { border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 32px; }
+  h1 { font-size: 30px; margin-bottom: 8px; }
+  h1 .dot { color: var(--accent); }
+  .sub { color: var(--muted); font-size: 15px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px 22px; margin-bottom: 16px;
+  }
+  .card h2 { font-size: 18px; margin-bottom: 6px; }
+  .card h2 a { color: var(--text); text-decoration: none; }
+  .card h2 a:hover { color: var(--accent); }
+  .card p { color: var(--muted); font-size: 14px; }
+  .tag {
+    display: inline-block; font-size: 12px; color: var(--accent);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 1px 10px; margin-right: 6px;
+  }
+  footer { margin-top: 40px; color: var(--muted); font-size: 13px; text-align: center; }
+  code { background: #21262d; padding: 2px 6px; border-radius: 4px;
+         font-family: Consolas, monospace; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>on yu <span class="dot">/</span> C 语言笔记</h1>
+    <p class="sub">高效学习 C 语言 · 记录踩过的坑与想通的事</p>
+  </header>
 
+  <div class="card">
+    <h2><a href="#">第一篇文章：从这里开始</a></h2>
+    <p>2026-10-18 · <span class="tag">随笔</span></p>
+  </div>
+
+  <div class="card">
+    <h2><a href="#">C 语言的 if-else 与声明位置</a></h2>
+    <p>聊聊全角字符、漏掉 <code>*</code>、声明写在语句后那些坑</p>
+  </div>
+
+  <footer>Powered by GitHub Pages</footer>
+</div>
+</body>
+</html>
