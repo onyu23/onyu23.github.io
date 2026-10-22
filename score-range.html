@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>成绩分档统计：计数器、循环与平均值的七个坑 · on yu 的 C 语言笔记</title>
+<style>
+  :root {
+    --bg: #0d1117; --card: #161b22; --border: #30363d;
+    --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --warn: #f0883e;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    line-height: 1.8; padding: 48px 20px;
+  }
+  .wrap { max-width: 780px; margin: 0 auto; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  h1 { font-size: 30px; margin-bottom: 10px; line-height: 1.35; }
+  .meta { color: var(--muted); font-size: 14px; margin-bottom: 32px;
+          padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+  h2 { font-size: 21px; margin: 36px 0 12px; padding-left: 12px;
+       border-left: 3px solid var(--accent); }
+  h3 { font-size: 17px; margin: 22px 0 8px; color: #a5d6ff; }
+  p { margin-bottom: 14px; }
+  ul, ol { margin: 0 0 14px 24px; }
+  li { margin-bottom: 6px; }
+  code { font-family: Consolas, "Courier New", monospace; background: #21262d;
+         padding: 2px 6px; border-radius: 4px; font-size: 14px; color: #ffa657; }
+  pre {
+    background: #161b22; border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px 18px; overflow-x: auto;
+    margin-bottom: 18px; font-size: 14px; line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; color: #e6edf3; }
+  blockquote {
+    border-left: 3px solid var(--warn); background: #1c1611;
+    padding: 12px 16px; margin-bottom: 18px; color: #d0c4b0; font-size: 14px;
+  }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px; }
+  th, td { border: 1px solid var(--border); padding: 9px 12px; text-align: left; }
+  th { background: #161b22; }
+  .err { color: #ff7b72; }
+  .ok { color: #3fb950; }
+  footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--border);
+           color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p><a href="index.html">&larr; 返回首页</a></p>
+
+  <h1>成绩分档统计：计数器、循环与平均值的七个坑</h1>
+  <p class="meta">2026-10-22 · 标签：C语言 · 循环 · 分类统计</p>
+
+  <p>这次的题目是「按分数分档统计人数」：给 <code>n</code> 个 0~100 的整数成绩，按
+     A（90~100）、B（80~89）、C（70~79）、D（60~69）、F（0~59）五档，
+     输出各档人数，空格隔开。</p>
+
+  <p>题目本身一分钟就能读懂，我却写了很多版才对。回头看，每一版都栽在不同的小地方，
+     而它们恰好覆盖了「循环 + 计数」这类题的全部基础坑。这篇把它们一次说清楚。</p>
+
+  <h2>题目骨架：一个计数器 + 从高到低判断</h2>
+
+  <p>这类题的核心只有两句话：<strong>读一个数，判断它落在哪一档，把那一档的计数器加一</strong>。
+     不需要数组，也不需要把成绩存下来。</p>
+
+  <table>
+    <tr><th>成绩</th><th>档位</th><th>判断写法</th></tr>
+    <tr><td>90 ~ 100</td><td>A</td><td><code>s &gt;= 90</code></td></tr>
+    <tr><td>80 ~ 89</td><td>B</td><td><code>s &gt;= 80</code></td></tr>
+    <tr><td>70 ~ 79</td><td>C</td><td><code>s &gt;= 70</code></td></tr>
+    <tr><td>60 ~ 69</td><td>D</td><td><code>s &gt;= 60</code></td></tr>
+    <tr><td>0 ~ 59</td><td>F</td><td><code>else</code></td></tr>
+  </table>
+
+  <p>关键是：<strong>只写每档的下界，从高到低判断</strong>。因为 <code>else if</code> 从上往下走，
+     第一个成立就跳出去，所以 90 分的 <code>&gt;= 80</code> 根本轮不到判断，
+     不会出现「一个人被统计两次」的问题。</p>
+
+  <pre><code>#include &lt;stdio.h&gt;
+
+int main(void)
+{
+    int a = 0, b = 0, c = 0, d = 0, f = 0;   /* 五个计数器 */
+    int n, s, i;
+
+    scanf("%d", &amp;n);
+    for (i = 0; i &lt; n; i++) {
+        scanf("%d", &amp;s);
+        if (s &gt;= 90)      a++;     /* 从高到低 */
+        else if (s &gt;= 80) b++;
+        else if (s &gt;= 70) c++;
+        else if (s &gt;= 60) d++;
+        else              f++;
+    }
+
+    printf("%d %d %d %d %d\n", a, b, c, d, f);
+    return 0;
+}</code></pre>
+
+  <p>就这三十行，但我第一版写出来是这样（只摘循环部分）：</p>
+
+  <pre><code>while (n--)
+    scanf("%d", s);
+    if (s &gt;= 90) a++;</code></pre>
+
+  <p>编译居然「通过」了（只有警告），运行直接崩溃。下面把七个坑一个个拆开。</p>
+
+  <h2>坑一：<code>scanf</code> 少了 <code>&amp;</code></h2>
+
+  <p>上面那行 <code>scanf("%d", s)</code> 少了取地址符。GCC 的警告是：</p>
+
+  <blockquote class="err">warning: format '%d' expects argument of type 'int *', but argument 2 has type 'int'</blockquote>
+
+  <p>翻过来就是：<code>scanf</code> 要的是「<strong>int 的地址</strong>」，你给的是「int 的值」。
+     <code>s</code> 这时候还是随机值，相当于让 <code>scanf</code> 往一个随机地址写数据。</p>
+
+  <p>实测运行这条程序，退出码是 <code>3221225477</code>，也就是 <code>0xC0000005</code>
+     （ACCESS_VIOLATION，访问冲突）——一段输出都没有。</p>
+
+  <table>
+    <tr><th>函数</th><th>参数写法</th><th>原因</th></tr>
+    <tr><td><code>scanf("%d", &amp;n)</code></td><td><span class="ok">要 &amp;</span></td><td>要把值写进变量，必须知道它住哪</td></tr>
+    <tr><td><code>printf("%d", n)</code></td><td><span class="err">不要 &amp;</span></td><td>只是读这个值去打印</td></tr>
+  </table>
+
+  <h2>坑二：<code>while</code> 后面漏了大括号</h2>
+
+  <pre><code>while (n--)
+    scanf("%d", &amp;s);        /* 只有这一句属于 while */
+if (s &gt;= 90) a++;          /* 这几句在循环外面 */
+else if (s &gt;= 80) b++;</code></pre>
+
+  <p>没有 <code>{ }</code> 时，<code>while</code> 只包含<strong>紧随其后的一条语句</strong>。
+     于是实际执行的是：把 5 个数全部读进 <code>s</code>，循环结束后只对最后那个数（52）做一次判断。</p>
+
+  <p>结果：5 个人的成绩，只统计了 1 个人，输出 <code>0 0 1 0</code>。</p>
+
+  <p>GCC 对这种「缩进看起来像一组、实际只包一句」的代码有专门的警告：</p>
+
+  <blockquote>warning: this 'while' clause does not guard... [-Wmisleading-indentation]</blockquote>
+
+  <p>看到 <code>misleading-indentation</code>（误导性缩进）就该立刻怀疑是不是漏了大括号。</p>
+
+  <h2>坑三：判断顺序从低到高写</h2>
+
+  <p>第二个版本我把条件顺序写成了这样：</p>
+
+  <pre><code>if (s &gt;= 50)      a++;
+else if (s &gt;= 70) b++;
+else if (s &gt;= 90) c++;
+else              d++;</code></pre>
+
+  <p>看起来「50、70、90 都写了」，实际上 <code>&gt;= 50</code> 一成立就跳走了，
+     <strong>50 以上的分数全部进了第一档</strong>，后两个分支永远执行不到。</p>
+
+  <p>用 5 个成绩（45、62、78、90、52）实测，输出是 <code>4 0 0 1 -1218343303</code>：
+     4 个大于等于 50 的全算给了第一档，只有 45 落到最后一档，最后一个数是没初始化导致的随机值（见坑四）。</p>
+
+  <p><strong>规则</strong>：区间判断一律<strong>从高到低</strong>写，每个分支只写自己的下界。
+     这样 90、80、70、60 这些边界值会自然归入更高的那一档，不需要写 <code>s &gt;= 80 &amp;&amp; s &lt;= 89</code>。</p>
+
+  <h2>坑四：<code>sum</code> 没初始化</h2>
+
+  <p>加平均值之后，我声明了 <code>int n, s, sum;</code> 就直接 <code>sum += s;</code>。
+     局部变量不初始化，初值是内存里的<strong>随机垃圾</strong>，于是总和是从一个随机数开始累加的。</p>
+
+  <blockquote class="err">warning: 'sum' may be used uninitialized [-Wmaybe-uninitialized]</blockquote>
+
+  <p>实测输出里的平均值是 <code>-1218343303</code>。计数器 <code>a/b/c/d</code> 都必须 <code>= 0</code>，
+     累加器 <code>sum</code> 也一样。</p>
+
+  <h2>坑五：<code>while (n--)</code> 之后，<code>n</code> 已经不是原来的 n 了</h2>
+
+  <p>为了求平均，我最后写了 <code>sum / n</code>，结果输出 <code>1 2 1 1 -327</code>——
+     人数全对，平均值却是个负数。</p>
+
+  <p>原因是 <code>while (n--)</code> 的循环要等 <code>n</code> 减到 0、判断为假才退出，
+     退出时 <code>n</code> 已经变成 <strong>-1</strong>。327 / (-1) = -327。</p>
+
+  <p>两种改法：</p>
+
+  <h3>改法一：先把人数存一份</h3>
+
+  <pre><code>int n, w, sum = 0, total;
+
+scanf("%d", &amp;n);
+total = n;                 /* 存下来 */
+while (n--) {
+    ...
+}
+printf("%d %d %d %d %d\n", s, m, o, f, sum / total);</code></pre>
+
+  <h3>改法二：用一个计数变量，别动 n（推荐）</h3>
+
+  <pre><code>int n, w, sum = 0, i = 0;
+
+scanf("%d", &amp;n);
+while (i &lt; n) {
+    scanf("%d", &amp;w);
+    sum += w;
+    ...
+    i++;
+}
+printf("%d %d %d %d %d\n", s, m, o, f, sum / n);   /* n 还是原值 */</code></pre>
+
+  <p>这就等价于 <code>for (i = 0; i &lt; n; i++)</code>。<strong>循环变量只用来数次数，
+     原始数据（这里是 n）要留给后面用</strong>——这是循环里最容易忽略的一条。</p>
+
+  <h2>坑六：输出顺序和变量含义对不上</h2>
+
+  <p>我用 <code>a、b、c、d</code> 当计数器，按「从高到低」的顺序赋值：</p>
+
+  <table>
+    <tr><th>变量</th><th>实际含义</th></tr>
+    <tr><td><code>a</code></td><td>90 分及以上（A）</td></tr>
+    <tr><td><code>b</code></td><td>80~89（B）</td></tr>
+    <tr><td><code>c</code></td><td>70~79（C）</td></tr>
+    <tr><td><code>d</code></td><td>60~69（D）</td></tr>
+  </table>
+
+  <p>但题目要求按 <strong>A B C D F</strong> 输出，我却写成了
+     <code>printf("%d %d %d %d %d", a, b, c, d, f)</code>——
+     在另一版（档位是 F O N S）里，样例就输出成了 <code>1 1 2 1 65</code>，
+     而正确答案是 <code>1 2 1 1 65</code>：数字没算错，<strong>顺序错了</strong>。</p>
+
+  <p>这个问题光看代码很难发现，因为每个数字都是对的。最好的预防方式是
+     <strong>变量名直接叫 <code>s/m/o/f</code> 或 <code>a/b/c/d/f</code></strong>，
+     让名字本身就说明它是哪一档。</p>
+
+  <h2>坑七：漏一个分号，报出一串错</h2>
+
+  <pre><code>        i++        /* 少了分号 */
+    }
+    printf(...);</code></pre>
+
+  <p>编译输出是这样的（节选）：</p>
+
+  <blockquote class="err">error: expected ';' before '}' token<br>
+  error: 'else' without a previous 'if'</blockquote>
+
+  <p>只有第一条是真错。缺了分号后，编译器把 <code>i++</code> 和后面的 <code>}</code>
+     连在一起解析，语法树彻底乱了，于是「找不到 <code>if</code> 的 <code>else</code>」这种
+     莫名其妙的错误就跟着冒出来。</p>
+
+  <p><strong>经验</strong>：一堆报错先看<strong>第一条</strong>，修完重新编译，往往后面的都消失了。</p>
+
+  <h2>编译器是第一道防线：用 <code>-Wall</code></h2>
+
+  <p>上面七个坑里，有四个是编译器<strong>已经提醒过我</strong>的，只是我没认真看：
+     缺 <code>&amp;</code> 有 <code>-Wformat</code>，
+     <code>sum</code> 没初始化有 <code>-Wmaybe-uninitialized</code>，
+     漏大括号有 <code>-Wmisleading-indentation</code>。加上 <code>-Wall</code> 编译：</p>
+
+  <pre><code>gcc -O2 -Wall -Wextra -o main main.c</code></pre>
+
+  <p>提醒不等于错误，程序照样能编出来，所以最容易被忽略。
+     但它们几乎都指向「运行时会出错」，看到就该停下来查。</p>
+
+  <h2>整数除法与数据范围</h2>
+
+  <p>平均值用的是整数除法：</p>
+
+  <pre><code>sum / n     /* 两个 int 相除，C 自动向下取整 */</code></pre>
+
+  <p>327 / 5 = 65，小数部分直接舍去，正好符合题目「向下取整」的要求，
+     不需要 <code>&lt;math.h&gt;</code> 的 <code>floor</code>，也不用转 <code>double</code>。</p>
+
+  <p>顺便算一下会不会溢出：<code>n ≤ 1000</code>，成绩最大 100，总和最多 100000；
+     <code>int</code> 能存到约 21 亿，绰绰有余。判断溢出的办法是
+     <strong>把最大值代进去算一遍</strong>，而不是凭感觉用 <code>long long</code>。</p>
+
+  <h2>提交前检查清单</h2>
+
+  <table>
+    <tr><th>检查项</th><th>出事时的症状</th></tr>
+    <tr><td>计数器、累加器都 <code>= 0</code></td><td>输出随机大数，如 <code>-1218343303</code></td></tr>
+    <tr><td>区间从高到低判断</td><td>某一档人数恒为 0，第一档人数偏多</td></tr>
+    <tr><td>循环体有 <code>{ }</code></td><td>只统计了最后一个人</td></tr>
+    <tr><td>循环结束后 <code>n</code> 还能用</td><td>平均值是负数</td></tr>
+    <tr><td><code>scanf</code> 都有 <code>&amp;</code></td><td>程序崩溃（0xC0000005）</td></tr>
+    <tr><td>输出顺序和题面一致</td><td>数字对、顺序错，样例就对不上</td></tr>
+    <tr><td>每条语句有 <code>;</code>（半角）</td><td>编译报一串错</td></tr>
+    <tr><td>自己跑过样例和边界值</td><td>交上去才发现 WA</td></tr>
+  </table>
+
+  <h2>完整代码（含平均值）</h2>
+
+  <p>这是后来做的那道「体检体重分档」练习（S：小于 50，N：50~69，O：70~89，F：90 及以上，
+     另输出平均体重）的最终版本，一次 AC：</p>
+
+  <pre><code>#include &lt;stdio.h&gt;
+
+int main(void)
+{
+    int s = 0, m = 0, o = 0, f = 0;   /* 四档人数，名字即档位 */
+    int n, w, sum = 0, i = 0;
+
+    scanf("%d", &amp;n);
+    while (i &lt; n) {
+        scanf("%d", &amp;w);
+        sum += w;
+        if (w &gt;= 90)      f++;
+        else if (w &gt;= 70) o++;
+        else if (w &gt;= 50) m++;
+        else              s++;
+        i++;
+    }
+
+    printf("%d %d %d %d %d\n", s, m, o, f, sum / n);
+    return 0;
+}</code></pre>
+
+  <p>样例 <code>5 / 45 62 78 90 52</code> 输出 <code>1 2 1 1 65</code>，
+     在本地 OJ 上 10 个测试点全过，100 分。</p>
+
+  <h2>知识点小结</h2>
+
+  <ul>
+    <li><strong>分类统计的骨架</strong>：一个计数器数组或几个计数变量 + 从高到低的 if-else + 每个数加一次。</li>
+    <li><strong>else if 的短路特性</strong>：第一个成立的判断会吃掉后面所有判断，所以顺序决定结果。</li>
+    <li><strong>局部变量必须初始化</strong>，计数器与累加器尤其如此。</li>
+    <li><strong>循环变量与数据变量要分开</strong>，别把后面还要用的 <code>n</code> 减没。</li>
+    <li><strong>scanf 要地址、printf 要值</strong>，这一对最常错。</li>
+    <li><strong>花括号不是装饰</strong>，它决定哪些语句属于循环。</li>
+    <li><strong>整数除法天然向下取整</strong>，但要注意除数和数据范围。</li>
+    <li><strong>先修第一条错误、再重新编译</strong>，别被连锁报错吓到。</li>
+    <li><strong>-Wall -Wextra</strong> 是最便宜的自查方式。</li>
+    <li><strong>样例 + 边界值自测</strong>，交题前跑一遍。</li>
+  </ul>
+
+  <p>这类题不难，难的是「每一处都差一点点」：少一个 <code>&amp;</code>、少一对花括号、
+     条件顺序颠倒、<code>n</code> 被减坏、输出顺序反了……它们单独出现时都只错一点点，
+     叠加起来就变成「怎么改都不对」。把每种症状和原因对应起来记，比背代码有用得多。</p>
+
+  <footer>
+    <p>本文记录于 2026 年 10 月 22 日，相关练习：<a href="first.html">C 语言的 if-else 与声明位置</a>。</p>
+  </footer>
+</div>
+</body>
+</html>
